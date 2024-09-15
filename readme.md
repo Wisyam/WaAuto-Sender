@@ -23,6 +23,5 @@ WhatsApp Auto Sender Bot is a simple automation bot built using the [whatsapp-we
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/whatsapp-auto-sender-bot.git
+   https://github.com/Wisyam/WaAuto-Sender.git
    cd whatsapp-auto-sender-bot
-```
