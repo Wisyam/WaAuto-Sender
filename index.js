@@ -34,7 +34,7 @@ const client = new Client({
 
 // Daftar nomor yang diizinkan (whitelist)
 const allowedNumbers = [
-    '6283831973277@c.us'
+    'YOUR_NUMBER@c.us'
 ];
 
 // Deklarasi variabel
