@@ -1,32 +1,62 @@
-@echo off
-:: Set the repository URL and local directory
-set REPO_URL=https://github.com/Wisyam/WaAuto-Sender.git
-set LOCAL_DIR=%~dp0
+@ECHO OFF
+SETLOCAL EnableDelayedExpansion
 
-:: Change directory to where this script is located
-cd /d %LOCAL_DIR%
+:: Define constants
+SET REPO_URL=https://github.com/Wisyam/WaAuto-Sender/archive/refs/heads/main.zip
+SET LOCAL_ZIP=update-latest.zip
+SET EXTRACT_DIR=update-latest
+SET REPLACE_DIR=REPOSITORY-main
 
-:: Check if the directory is a git repository
-if exist .git (
-    echo Checking for updates...
-    :: Fetch the latest changes
-    git fetch
-    :: Check if there are any updates by comparing local and remote branches
-    for /f %%i in ('git rev-list HEAD...origin/main --count') do set changes=%%i
-    if %changes% gtr 0 (
-        echo Updates found, pulling latest changes...
-        git pull origin main
-    ) else (
-        echo No updates found.
-    )
-) else (
-    echo No repository found, cloning fresh copy...
-    :: Remove the existing directory if necessary
-    rmdir /s /q %LOCAL_DIR%\repository
-    :: Clone the repository
-    git clone %REPO_URL% %LOCAL_DIR%\repository
+:: Show initial message
+echo.
+echo Downloading Latest Update . . .
+
+:: Download the latest update
+powershell -Command "(New-Object System.Net.WebClient).DownloadFile('%REPO_URL%', '%LOCAL_ZIP%')"
+
+:: Check if download was successful
+IF EXIST "%LOCAL_ZIP%" (
+    echo Download complete.
+) ELSE (
+    echo Download failed. Exiting.
+    PAUSE
+    EXIT /B
 )
 
-:: Done
-echo Update process completed.
-pause
+:: Extract the downloaded zip file
+echo Extracting Files...
+powershell -Command "Expand-Archive -Path '%LOCAL_ZIP%' -DestinationPath '%EXTRACT_DIR%' -Force"
+
+:: Check if extraction was successful
+IF EXIST "%EXTRACT_DIR%\%REPLACE_DIR%" (
+    echo Extraction complete.
+) ELSE (
+    echo Extraction failed. Exiting.
+    PAUSE
+    EXIT /B
+)
+
+:: Replace old files with new files
+echo Replacing Files...
+xcopy /s /y "%EXTRACT_DIR%\%REPLACE_DIR%\" "*" >nul
+
+:: Check if replacement was successful
+IF ERRORLEVEL 0 (
+    echo Files replaced successfully.
+) ELSE (
+    echo File replacement failed. Exiting.
+    PAUSE
+    EXIT /B
+)
+
+:: Clean up temporary files
+echo Cleaning Up Temp Files...
+powershell -Command "Remove-Item -Path '%LOCAL_ZIP%' -Force"
+powershell -Command "Remove-Item -Path '%EXTRACT_DIR%' -Force -Recurse"
+
+:: Final message
+echo Successfully Updated! You may now run the program.
+
+PAUSE
+ENDLOCAL
+EXIT /B
