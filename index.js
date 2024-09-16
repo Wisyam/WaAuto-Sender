@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const figlet = require('figlet');
+const fs = require('fs');
 
 // ANSI escape codes untuk warna
 const colors = {
@@ -42,7 +43,24 @@ let stage = {};
 let selectedGroup = {};
 let groupList = [];
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const MAX_MESSAGES_PER_SESSION = 2; // Batasi jumlah pesan per sesi
+
+// Atur delay 10 menit per kontak dan 5 menit per sesi
+const DELAY_BETWEEN_CONTACTS = 10 * 60 * 1000; // 10 menit dalam milidetik
+const DELAY_BETWEEN_SESSIONS = 5 * 60 * 1000; // 5 menit dalam milidetik
+const MAX_MESSAGES_PER_SESSION = 6; // Batasi jumlah pesan per sesi
+
+function addNumberToFile(number) {
+    fs.appendFileSync('list.txt', `${number}\n`);
+}
+
+// Fungsi untuk membaca nomor dari list.txt
+function readNumbersFromFile() {
+    if (!fs.existsSync('list.txt')) {
+        fs.writeFileSync('list.txt', ''); // Buat file jika tidak ada
+    }
+    const data = fs.readFileSync('list.txt', 'utf-8');
+    return data.split('\n').filter(Boolean); // Buat array dari nomor di file
+}
 
 // Fungsi untuk mencetak teks fancy
 function printFancyTitle() {
@@ -127,7 +145,6 @@ client.on('message', async message => {
             let chats = await client.getChats();
             groupList = chats.filter(chat => chat.isGroup);
 
-            // Kasih delay
             if (groupList.length > 0) {
                 let response = 'Pilih grup yang ingin kamu kirim pesan:\n';
                 groupList.forEach((group, index) => {
@@ -154,24 +171,34 @@ client.on('message', async message => {
             const messageToSend = message.body;
             message.reply(`Mengirim pesan ke semua anggota grup "${group.name}"...`);
 
-            // Kirim pesan ke semua member grup (kecuali bot)
+            // Ambil nomor yang sudah ada di list.txt
+            const sentNumbers = readNumbersFromFile();
+
+            // Kirim pesan ke semua member grup (kecuali bot dan yang sudah di list.txt)
             const participants = await group.participants;
             let count = 0; // Counter untuk jumlah pesan yang dikirim
             for (const participant of participants) {
-                if (participant.id._serialized !== senderNumber) {
-                    await client.sendMessage(participant.id._serialized, messageToSend);
-                    console.log(`${colors.green}Pesan terkirim ke ${participant.id._serialized}${colors.reset}`);
-            
-                    // Beri jeda 6-9 detik sebelum mengirim ke kontak berikutnya
-                    const delay = Math.floor(Math.random() * (9000 - 6000 + 1)) + 6000;
-                    await sleep(delay);
-                    
+                const participantId = participant.id._serialized;
+
+                // Skip pengirim dan nomor yang sudah ada di list.txt
+                if (participantId !== senderNumber && !sentNumbers.includes(participantId)) {
+                    await client.sendMessage(participantId, messageToSend);
+                    console.log(`${colors.green}Pesan terkirim ke ${participantId}${colors.reset}`);
+
+                    // Tambahkan nomor ke list.txt
+                    addNumberToFile(participantId);
+
+                    // Beri jeda 10 menit sebelum mengirim ke kontak berikutnya
+                    await sleep(DELAY_BETWEEN_CONTACTS);
+
                     count++;
                     if (count >= MAX_MESSAGES_PER_SESSION) {
-                        console.log(`${colors.yellow}Mencapai batas pesan per sesi. Menunggu sebelum melanjutkan...${colors.reset}`);
-                        await sleep(120000); // Tunggu 2 menit  
+                        console.log(`${colors.yellow}Mencapai batas pesan per sesi. Menunggu 5 menit sebelum melanjutkan...${colors.reset}`);
+                        await sleep(DELAY_BETWEEN_SESSIONS); // Tunggu 5 menit
                         count = 0; // Reset counter
                     }
+                } else {
+                    console.log(`${colors.yellow}Mengabaikan nomor ${participantId}, sudah pernah dikirim.${colors.reset}`);
                 }
             }
 
