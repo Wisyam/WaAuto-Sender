@@ -32,12 +32,13 @@ const colors = {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
+        headless: false,  // Nonaktifkan mode headless untuk membuka Chrome
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',   // Disable /dev/shm usage
             '--disable-logging',         // Nonaktifkan logging Chrome
-            // '--disable-gpu',             // Nonaktifkan penggunaan GPU
+            '--disable-gpu',             // Nonaktifkan penggunaan GPU
             '--single-process',          // Gunakan proses tunggal
             '--no-zygote',               // Nonaktifkan proses zygote
         ]
@@ -56,7 +57,7 @@ let groupList = [];
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Atur delay 10 menit per kontak dan 5 menit per sesi
-const DELAY_BETWEEN_CONTACTS = 10 * 60 * 1000; // 10 menit dalam milidetik
+const DELAY_BETWEEN_CONTACTS = 2 * 60 * 1000; // 2 menit dalam milidetik
 const DELAY_BETWEEN_SESSIONS = 5 * 60 * 1000; // 5 menit dalam milidetik
 const MAX_MESSAGES_PER_SESSION = 10; // Batasi jumlah pesan per sesi
 
